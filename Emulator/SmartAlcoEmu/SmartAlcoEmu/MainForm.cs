@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO.Ports;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,15 +21,41 @@ namespace SmartAlcoEmu
         // Add this variable
 
         string RxString;
-
         private void DisplayText(object sender, EventArgs e)
         {
             textBoxCom.AppendText(RxString);
+            if (RxString.Contains("dump"))
+            {
+                serialPort.WriteLine("ABCDEF1234 1");
+                serialPort.WriteLine("BCDEFA2341 232");
+                serialPort.WriteLine("CDEFAB3412 332");
+                serialPort.WriteLine("DEFABC4123 4322");
+            }
+
+            if (RxString.Contains("live"))
+            {
+                if (timer1.Enabled)
+                {
+                    timer1.Stop();
+                }
+                else
+                {
+                    timer1.Start();
+                }
+               
+            }
+
+            if (RxString.Contains("stoplive"))
+            {
+               
+                    timer1.Stop();
+
+            }
         }
 
         private void connectButton_Click(object sender, EventArgs e)
         {
-            serialPort.PortName = "COM2";
+            serialPort.PortName = comComboBox.SelectedItem.ToString();
             serialPort.BaudRate = 9600;
 
             serialPort.Open();
@@ -37,6 +64,7 @@ namespace SmartAlcoEmu
                 connectButton.Enabled = false;
                 disconnectButton.Enabled = true;
                 textBoxCom.ReadOnly = false;
+                comStatusLabel.Text = "Connected";
             }
         }
 
@@ -48,6 +76,7 @@ namespace SmartAlcoEmu
                 connectButton.Enabled = true;
                 disconnectButton.Enabled = false;
                 textBoxCom.ReadOnly = true;
+                comStatusLabel.Text = "Disconnected";
             }
         }
 
@@ -79,8 +108,20 @@ namespace SmartAlcoEmu
 
         private void serialPort_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
         {
-            RxString = serialPort.ReadExisting();
+            RxString = serialPort.ReadLine();
             this.Invoke(new EventHandler(DisplayText));
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            var serialPorts = SerialPort.GetPortNames();
+            serialPorts.ToList().ForEach(x => comComboBox.Items.Add(x));
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            var rand = new Random();
+            serialPort.WriteLine("ABCDEF" + rand.Next(0,10) + "4 " + rand.Next(0, 20));
         }
     }
 }
